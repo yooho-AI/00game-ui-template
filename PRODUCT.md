@@ -642,7 +642,7 @@ AI 开始流式输出——故事文字一段段浮现在对话区：
 - 已解锁角色
 - 资产/物品
 
-**存储方式**：浏览器 localStorage，key 为 `{游戏ID}-save-v1`
+**存储方式**：浏览器 localStorage，key 为 `chuangzhao-save-v2`（v2 含 WorldConfig）
 
 ---
 
@@ -662,7 +662,7 @@ AI 开始流式输出——故事文字一段段浮现在对话区：
 - 打开链接 → 直接看到世界预览页面（跳过创造和加载）
 - 点"开始游戏"→ 进入同一个世界，开始自己的故事
 
-**技术方式**：世界配置 JSON → 压缩 → Base64 → URL 参数。约 3-5KB，不需要服务端存储。
+**技术方式**：世界配置 JSON → lz-string 压缩 → URL-safe 编码 → `?w=` 参数。约 2-4KB，不需要服务端存储。
 
 ---
 
@@ -920,7 +920,7 @@ AI 开始流式输出——故事文字一段段浮现在对话区：
 | `worldConfig` | WorldConfig | 压缩编码的世界配置 |
 
 **分享内容 = WorldConfig**（不含游戏进度）
-**编码方式**：JSON → gzip → Base64 → URL 参数
+**编码方式**：JSON → lz-string compressToEncodedURIComponent → URL 参数 `?w=`
 
 ---
 
@@ -1004,11 +1004,49 @@ AI 在每次回复中，除了故事文本，还会输出以下标记。前端�
 
 # 七、项目节奏
 
-| 阶段 | 内容 | 交付物 |
-|------|------|--------|
-| Phase 0 | 通用游戏 UI 模板 | config 驱动的三栏布局 + 全部游戏面板 |
-| Phase 1 | AI 世界生成器 + 创造/预览 | 一句话→可玩游戏的完整体验 |
-| Phase 2 | 分享链接 + 灵感广场 | 创造→分享→玩→更多人创造 |
-| Phase 3 | AI 生图（角色/场景）+ 编辑器 | 视觉升级 + 用户可微调世界 |
+| 阶段 | 内容 | 交付物 | 状态 |
+|------|------|--------|------|
+| Phase 0 | 通用游戏 UI 模板 | config 驱动的三栏布局 + 全部游戏面板 | ✅ 完成 |
+| Phase 1 | AI 世界生成器 + 创造流 + 分享 | 一句话→可玩游戏的完整体验 + URL 分享 | ✅ 完成 |
+| Phase 2 | 灵感广场 + 社区 | 创造→分享→玩→更多人创造 | 规划中 |
+| Phase 3 | AI 生图（角色/场景）+ 编辑器 | 视觉升级 + 用户可微调世界 | 规划中 |
 
-**当前：Phase 0，建好地基。**
+## 当前实现状态
+
+### Phase 0 — 通用游戏骨架 ✅
+
+- 暗色 Indigo 三栏布局（PC）+ 移动端自适应
+- config/ 驱动：修改 6 个配置文件即可换皮
+- 对话引擎：SSE 流式输出 + Chat Fiction 风格
+- 7 种 AI 结构化标记解析（属性/目标/事件/角色/物品/行动/重大事件）
+- 存档系统 v2（含 WorldConfig）
+- gx- CSS 前缀，CSS 变量主题系统
+
+### Phase 1 — AI 创造流 ✅
+
+- **创造终端**（creation-terminal.tsx）：全屏输入 + 7 条灵感提示 + 创造按钮
+- **加载动画**（loading-screen.tsx）：6 阶段模拟进度条，API 返回跳 100%
+- **世界预览**（world-preview.tsx）：WorldConfig 全字段展示，确认/重新生成/分享
+- **AI 生成器**（generator.ts）：调用 Gemini Flash 生成 WorldConfig，含自动重试
+- **分享系统**（share.ts）：lz-string 压缩 → URL ?w= 参数，纯前端零服务端
+- **动态注入**：store._worldConfig + cfg() 闭包 + applyThemeColors() CSS 变量覆盖
+- **App 状态机**：creation → loading → preview → game 四阶段
+- **存档恢复**：创造页底部"继续上次游戏"按钮
+
+### Phase 2 — 待规划
+
+可能方向：
+- 灵感广场：热门世界展示，一键体验
+- 世界编辑器：用户微调 AI 生成的配置
+- 结局系统：三目标全部完成 → 结算画面
+- 多存档槽位：同时保存多个世界
+
+### 技术栈
+
+```
+前端:    React 19 + Zustand + Immer + Framer Motion + Tailwind CSS v4
+构建:    Vite 7 + TypeScript
+AI:      Gemini 2.0 Flash (via api.yooho.ai)
+分享:    lz-string 压缩编码
+部署:    Cloudflare Pages + Workers
+```
