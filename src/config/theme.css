@@ -1,0 +1,27 @@
+/**
+ * [INPUT]: 无
+ * [OUTPUT]: 全局 CSS 变量（暗色 Indigo 默认主题）
+ * [POS]: config 的视觉主题定义，被 globals.css @import
+ * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
+ */
+
+:root {
+  --primary: #6366f1;
+  --primary-light: rgba(99, 102, 241, 0.1);
+  --primary-glow: rgba(99, 102, 241, 0.3);
+  --accent: #a78bfa;
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #0f0f0f;
+  --bg-card: #242424;
+  --bg-hover: rgba(99, 102, 241, 0.08);
+  --bg-overlay: rgba(0, 0, 0, 0.7);
+  --text-primary: #f5f5f5;
+  --text-secondary: #a3a3a3;
+  --text-muted: #666;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-light: rgba(255, 255, 255, 0.12);
+  --font: -apple-system, 'Noto Sans SC', sans-serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 16px;
+}
