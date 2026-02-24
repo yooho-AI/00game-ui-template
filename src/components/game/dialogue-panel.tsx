@@ -7,7 +7,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { useGameStore, CHARACTER_COLORS } from '@/lib/store'
+import { useGameStore } from '@/lib/store'
 import { parseStoryParagraph, stripMarkers } from '@/lib/parser'
 import HighlightModal from './highlight-modal'
 
@@ -15,7 +15,7 @@ import HighlightModal from './highlight-modal'
 // 消息渲染
 // ============================================================
 
-function MessageItem({ msg }: { msg: { id: string; role: string; content: string } }) {
+function MessageItem({ msg, colors }: { msg: { id: string; role: string; content: string }; colors: Record<string, string> }) {
   if (msg.role === 'system') {
     return (
       <div className="gx-system-msg">
@@ -36,7 +36,7 @@ function MessageItem({ msg }: { msg: { id: string; role: string; content: string
 
   /* assistant */
   const cleaned = stripMarkers(msg.content)
-  const { narrative, statHtml } = parseStoryParagraph(cleaned, CHARACTER_COLORS)
+  const { narrative, statHtml } = parseStoryParagraph(cleaned, colors)
   return (
     <div>
       <div className="gx-story-paragraph" dangerouslySetInnerHTML={{ __html: narrative }} />
@@ -47,9 +47,9 @@ function MessageItem({ msg }: { msg: { id: string; role: string; content: string
   )
 }
 
-function StreamingMessage({ content }: { content: string }) {
+function StreamingMessage({ content, colors }: { content: string; colors: Record<string, string> }) {
   const cleaned = stripMarkers(content)
-  const { narrative, statHtml } = parseStoryParagraph(cleaned, CHARACTER_COLORS)
+  const { narrative, statHtml } = parseStoryParagraph(cleaned, colors)
   return (
     <div>
       <div className="gx-story-paragraph" dangerouslySetInnerHTML={{ __html: narrative }} />
@@ -187,6 +187,8 @@ export default function DialoguePanel() {
   const getScene = useGameStore(s => s.getScene)
   const [showHighlight, setShowHighlight] = useState(false)
 
+  const characterColors = useGameStore(s => s.getCharacterColors)()
+
   const scene = getScene(currentScene)
   const containerRef = useRef<HTMLDivElement>(null)
   const isNearBottomRef = useRef(true)
@@ -232,8 +234,8 @@ export default function DialoguePanel() {
         {/* 消息列表 */}
         <div ref={containerRef} className="gx-scrollbar" style={{ position: 'relative', zIndex: 1, flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
           <LetterCard />
-          {messages.map(msg => <MessageItem key={msg.id} msg={msg} />)}
-          {isTyping && streamingContent && <StreamingMessage content={streamingContent} />}
+          {messages.map(msg => <MessageItem key={msg.id} msg={msg} colors={characterColors} />)}
+          {isTyping && streamingContent && <StreamingMessage content={streamingContent} colors={characterColors} />}
           {isTyping && !streamingContent && <TypingIndicator />}
 
           {/* 行动选项 */}

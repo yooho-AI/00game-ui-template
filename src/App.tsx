@@ -1,15 +1,21 @@
 /**
- * [INPUT]: zustand store, hooks, bgm, framer-motion, 游戏组件
- * [OUTPUT]: App 根组件 — StartScreen ↔ GameScreen 状态机
- * [POS]: 项目入口，Phase 0 用静态 config，Phase 1 将扩展为多页面状态机
+ * [INPUT]: zustand store, hooks, bgm, framer-motion, creation 组件, game 组件, generator, share
+ * [OUTPUT]: App 根组件 — creation → loading → preview → game 四阶段状态机
+ * [POS]: 项目入口，整合 Phase 0 游戏骨架与 Phase 1 AI 创造流
  * [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useGameStore } from '@/lib/store'
 import { useIsMobile } from '@/lib/hooks'
 import { useBgm } from '@/lib/bgm'
+import { generateWorld } from '@/lib/generator'
+import { getSharedConfig, buildShareUrl } from '@/lib/share'
+import type { WorldConfig } from '@/config/game'
+import CreationTerminal from '@/components/creation/creation-terminal'
+import LoadingScreen from '@/components/creation/loading-screen'
+import WorldPreview from '@/components/creation/world-preview'
 import DialoguePanel from '@/components/game/dialogue-panel'
 import LeftPanel from '@/components/game/character-panel'
 import RightPanel from '@/components/game/side-panel'
@@ -18,109 +24,19 @@ import EventModal from '@/components/game/event-modal'
 import '@/styles/globals.css'
 
 // ============================================================
-// 开始界面
+// 主题色注入 — WorldConfig 色彩覆盖 CSS 变量
 // ============================================================
 
-function StartScreen() {
-  const initGame = useGameStore(s => s.initGame)
-  const loadGame = useGameStore(s => s.loadGame)
-  const hasSave = useGameStore(s => s.hasSave)
-  const getCharacters = useGameStore(s => s.getCharacters)
-  const getGameTitle = useGameStore(s => s.getGameTitle)
-  const getGameIcon = useGameStore(s => s.getGameIcon)
-  const getGameGenre = useGameStore(s => s.getGameGenre)
-  const getGameDescription = useGameStore(s => s.getGameDescription)
-  const { toggle, isPlaying } = useBgm()
-
-  const characters = getCharacters()
-  const unlocked = characters.filter(c => !c.locked)
-
-  return (
-    <div className="flex h-screen items-center justify-center" style={{ background: 'var(--bg-secondary)', fontFamily: 'var(--font)' }}>
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="w-full max-w-md px-6 text-center"
-      >
-        <motion.div
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.3, type: 'spring' }}
-          className="mb-6 text-5xl"
-        >
-          {getGameIcon()}
-        </motion.div>
-        <h1 className="mb-2 text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{getGameTitle()}</h1>
-        <p className="mb-1 text-sm" style={{ color: 'var(--primary)', opacity: 0.8 }}>{getGameGenre()}</p>
-        <p className="mb-8 text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-          {getGameDescription()}
-        </p>
-
-        {/* 角色预览 */}
-        <div className="mb-8 flex justify-center gap-4">
-          {unlocked.map((char, i) => (
-            <motion.div
-              key={char.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 + i * 0.1 }}
-              className="text-center"
-            >
-              <div
-                className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-full text-2xl"
-                style={{ border: `2px solid ${char.themeColor}`, background: 'var(--bg-card)' }}
-              >
-                {char.image ? (
-                  <img src={char.image} alt={char.name} className="h-full w-full rounded-full object-cover" />
-                ) : (
-                  char.avatar
-                )}
-              </div>
-              <div className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{char.name}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{char.title}</div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* 按钮 */}
-        <div className="flex flex-col gap-3">
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => initGame()}
-            className="w-full rounded-full px-8 py-3 text-sm font-medium text-white shadow-lg"
-            style={{
-              background: `linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)`,
-              boxShadow: '0 4px 16px rgba(99, 102, 241, 0.3)',
-            }}
-          >
-            开始游戏
-          </motion.button>
-
-          {hasSave() && (
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => loadGame()}
-              className="w-full rounded-full border px-8 py-3 text-sm font-medium"
-              style={{ borderColor: 'var(--border-light)', color: 'var(--primary)' }}
-            >
-              继续游戏
-            </motion.button>
-          )}
-        </div>
-
-        <button
-          onClick={e => toggle(e)}
-          className="mt-4 text-xs transition-colors"
-          style={{ color: 'var(--text-muted)' }}
-        >
-          {isPlaying ? '🔊 音乐开' : '🔇 音乐关'}
-        </button>
-      </motion.div>
-    </div>
-  )
+function applyThemeColors(colors: WorldConfig['themeColors']) {
+  const s = document.documentElement.style
+  s.setProperty('--primary', colors.primary)
+  s.setProperty('--primary-light', colors.primaryLight)
+  s.setProperty('--accent', colors.accent)
+  s.setProperty('--bg-primary', colors.bgPrimary)
+  s.setProperty('--bg-secondary', colors.bgSecondary)
+  s.setProperty('--bg-card', colors.bgCard)
+  s.setProperty('--text-primary', colors.textPrimary)
+  s.setProperty('--text-secondary', colors.textSecondary)
 }
 
 // ============================================================
@@ -235,7 +151,6 @@ function GameScreen() {
         </aside>
       </main>
 
-      {/* 重大事件弹窗 */}
       <EventModal />
 
       <AnimatePresence>
@@ -257,22 +172,155 @@ function GameScreen() {
 }
 
 // ============================================================
-// App 根组件
+// App 根组件 — 四阶段状态机
+// creation → loading → preview → game
 // ============================================================
 
+type AppPhase = 'creation' | 'loading' | 'preview' | 'game'
+
 export default function App() {
+  const [phase, setPhase] = useState<AppPhase>('creation')
+  const [worldConfig, setWorldConfig] = useState<WorldConfig | null>(null)
+  const [generationDone, setGenerationDone] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const gameStarted = useGameStore(s => s.gameStarted)
+  const loadWorldConfig = useGameStore(s => s.loadWorldConfig)
+  const initGame = useGameStore(s => s.initGame)
+  const loadGame = useGameStore(s => s.loadGame)
+  const hasSave = useGameStore(s => s.hasSave)
   const isMobile = useIsMobile()
+
+  /* 首次加载：检查 URL 分享参数 ?w= */
+  useEffect(() => {
+    const shared = getSharedConfig()
+    if (shared) {
+      setWorldConfig(shared)
+      setPhase('preview')
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
+  /* 同步 store.gameStarted ↔ phase */
+  useEffect(() => {
+    if (gameStarted && phase !== 'game') setPhase('game')
+    if (!gameStarted && phase === 'game') setPhase('creation')
+  }, [gameStarted, phase])
+
+  /* 创造流：用户输入 → 生成 WorldConfig */
+  const handleGenerate = useCallback(async (prompt: string) => {
+    setError(null)
+    setGenerationDone(false)
+    setPhase('loading')
+    try {
+      const config = await generateWorld(prompt)
+      setWorldConfig(config)
+      setGenerationDone(true)
+    } catch (e) {
+      setPhase('creation')
+      setError(e instanceof Error ? e.message : '生成失败，请重试')
+    }
+  }, [])
+
+  /* loading 动画结束 → preview */
+  const handleLoadingReady = useCallback(() => setPhase('preview'), [])
+
+  /* 确认世界 → 注入配置 → 开始游戏 */
+  const handleStart = useCallback(() => {
+    if (!worldConfig) return
+    loadWorldConfig(worldConfig)
+    applyThemeColors(worldConfig.themeColors)
+    initGame()
+  }, [worldConfig, loadWorldConfig, initGame])
+
+  /* 回到创造终端重新生成 */
+  const handleRegenerate = useCallback(() => {
+    setPhase('creation')
+    setWorldConfig(null)
+  }, [])
+
+  /* 分享世界配置到剪贴板 */
+  const handleShare = useCallback(() => {
+    if (!worldConfig) return
+    const url = buildShareUrl(worldConfig)
+    navigator.clipboard.writeText(url).catch(() => {})
+  }, [worldConfig])
+
+  /* 从 localStorage 存档恢复游戏 */
+  const handleContinue = useCallback(() => {
+    if (loadGame()) {
+      const wc = useGameStore.getState()._worldConfig
+      if (wc?.themeColors) applyThemeColors(wc.themeColors)
+    }
+  }, [loadGame])
 
   return (
     <AnimatePresence mode="wait">
-      {gameStarted ? (
+      {phase === 'creation' && (
+        <motion.div key="creation" exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+          <CreationTerminal onGenerate={handleGenerate} />
+
+          {/* 生成失败提示 */}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                onClick={() => setError(null)}
+                style={{
+                  position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
+                  padding: '10px 20px', borderRadius: 10,
+                  background: 'rgba(239, 68, 68, 0.9)', color: '#fff',
+                  fontSize: 13, fontWeight: 500, cursor: 'pointer', zIndex: 100,
+                }}
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* 继续上次游戏 */}
+          {hasSave() && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1 }}
+              onClick={handleContinue}
+              style={{
+                position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+                padding: '8px 20px', borderRadius: 99,
+                border: '1px solid var(--border)', background: 'rgba(36, 36, 36, 0.9)',
+                color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer',
+                backdropFilter: 'blur(8px)', zIndex: 50,
+              }}
+            >
+              📂 继续上次游戏
+            </motion.button>
+          )}
+        </motion.div>
+      )}
+
+      {phase === 'loading' && (
+        <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+          <LoadingScreen done={generationDone} onReady={handleLoadingReady} />
+        </motion.div>
+      )}
+
+      {phase === 'preview' && worldConfig && (
+        <motion.div key="preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+          <WorldPreview
+            config={worldConfig}
+            onStart={handleStart}
+            onRegenerate={handleRegenerate}
+            onShare={handleShare}
+          />
+        </motion.div>
+      )}
+
+      {phase === 'game' && (
         <motion.div key="game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }} className="h-screen">
           {isMobile ? <MobileGameLayout /> : <GameScreen />}
-        </motion.div>
-      ) : (
-        <motion.div key="start" exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-          <StartScreen />
         </motion.div>
       )}
     </AnimatePresence>

@@ -7,7 +7,7 @@
 
 import { useState, useRef, useEffect, type FormEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useGameStore, CHARACTER_COLORS } from '@/lib/store'
+import { useGameStore } from '@/lib/store'
 import { parseStoryParagraph, stripMarkers } from '@/lib/parser'
 import { useBgm } from '@/lib/bgm'
 import HighlightModal from './highlight-modal'
@@ -101,6 +101,7 @@ function MobileDialogue({ onCharClick }: { onCharClick: () => void }) {
   const getCharacter = useGameStore(s => s.getCharacter)
   const scrollRef = useRef<HTMLDivElement>(null)
   const isNearBottomRef = useRef(true)
+  const characterColors = useGameStore(s => s.getCharacterColors)()
   const char = currentCharacter ? getCharacter(currentCharacter) : undefined
   const hasUserMessage = messages.some(m => m.role === 'user')
 
@@ -176,7 +177,7 @@ function MobileDialogue({ onCharClick }: { onCharClick: () => void }) {
         }
 
         const cleaned = stripMarkers(msg.content)
-        const { narrative, statHtml } = parseStoryParagraph(cleaned, CHARACTER_COLORS)
+        const { narrative, statHtml } = parseStoryParagraph(cleaned, characterColors)
         return (
           <div key={msg.id}>
             <div className="mobile-msg-ai">
@@ -189,7 +190,7 @@ function MobileDialogue({ onCharClick }: { onCharClick: () => void }) {
 
       {isTyping && streamingContent && (() => {
         const cleaned = stripMarkers(streamingContent)
-        const { narrative, statHtml } = parseStoryParagraph(cleaned, CHARACTER_COLORS)
+        const { narrative, statHtml } = parseStoryParagraph(cleaned, characterColors)
         return (
           <div>
             <div className="mobile-msg-ai">
