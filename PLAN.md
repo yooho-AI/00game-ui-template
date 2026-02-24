@@ -127,9 +127,9 @@ export interface GameItem {
 ```typescript
 export interface Goal {
   id: string
-  title: string
-  description: string
-  progress: number            // 0-100
+  title: string               // 目标名称，如"获取密电码"
+  condition: string            // 达成条件，告诉玩家怎样完成这个目标
+  progress: number             // 0-100
   completed: boolean
 }
 ```
@@ -622,21 +622,21 @@ export const GAME_INFO: GameInfo = {
     {
       id: 'explore',
       title: '探索世界',
-      description: '访问所有可用场景，了解这个世界的全貌。',
+      condition: '访问所有可用场景，与场景中的角色交谈，了解这个世界的全貌。',
       progress: 0,
       completed: false,
     },
     {
       id: 'ally',
       title: '结交盟友',
-      description: '与至少两个角色建立信任关系（信任度 > 60）。',
+      condition: '通过反复对话和赠送礼物，与至少两个角色建立深度信任关系（信任度 > 60）。',
       progress: 0,
       completed: false,
     },
     {
       id: 'secret',
       title: '揭开秘密',
-      description: '发现隐藏在这个世界背后的真相。',
+      condition: '通过收集线索、触发关键事件，逐步发现隐藏在这个世界背后的真相。',
       progress: 0,
       completed: false,
     },
