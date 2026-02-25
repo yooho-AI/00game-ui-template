@@ -242,6 +242,9 @@ export const useGameStore = create<GameStore>()(
           s.activePanel = null
         })
         trackGameStart()
+
+        /* 自动触发开场叙事 — 让 AI 第一条回复就是长篇开场，定住后续输出基准 */
+        setTimeout(() => get().sendMessage('开始游戏'), 50)
       },
 
       selectCharacter: (id) => {
@@ -339,7 +342,8 @@ export const useGameStore = create<GameStore>()(
           await streamChat(
             apiMessages,
             chunk => { fullContent += chunk; set(s => { s.streamingContent = fullContent }) },
-            () => {}
+            () => {},
+            { max_tokens: 4096 }
           )
 
           if (!fullContent) {

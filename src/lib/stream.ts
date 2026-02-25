@@ -20,14 +20,15 @@ const API_BASE = 'https://api.yooho.ai'
 export async function streamChat(
   messages: StreamMessage[],
   onChunk: (text: string) => void,
-  onDone: () => void
+  onDone: () => void,
+  options?: { max_tokens?: number }
 ) {
   const API_URL = `${API_BASE}/api/v1/ai/game/chat/stream`
 
   const res = await fetch(API_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, stream: true }),
+    body: JSON.stringify({ messages, stream: true, ...options }),
   })
 
   if (!res.ok) {
