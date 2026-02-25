@@ -123,7 +123,7 @@ export function parseStructuredMarkers(
 export function stripMarkers(content: string): string {
   return content
     .replace(/【目标更新[：:].+?】/g, '')
-    .replace(/【(关键事件|重大事件)[：:].+?】[^【]*/g, '')
+    .replace(/【(关键事件|重大事件)[：:].+?】/g, '')
     .replace(/【解锁角色[：:].+?】/g, '')
     .replace(/【获得物品[：:].+?】/g, '')
     .replace(/【行动选项】[\s\S]+?(?=【|$)/g, '')
