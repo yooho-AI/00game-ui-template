@@ -103,6 +103,7 @@ export interface WorldConfig {
   description: string
   icon: string
   narrativeStyle: string
+  scriptContent?: string
   themeColors: ThemeColors
   maxDays: number
   maxActionPoints: number

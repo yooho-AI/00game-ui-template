@@ -145,6 +145,7 @@ export const useGameStore = create<GameStore>()(
         icon: wc?.icon ?? GAME_INFO.icon,
         description: wc?.description ?? GAME_INFO.description,
         narrativeStyle: wc?.narrativeStyle ?? GAME_INFO.narrativeStyle,
+        scriptContent: wc?.scriptContent ?? '',
       }
     }
 
@@ -327,6 +328,7 @@ export const useGameStore = create<GameStore>()(
             maxDays: c.maxDays,
             maxActionPoints: c.maxAP,
             narrativeStyle: c.narrativeStyle,
+            scriptContent: c.scriptContent,
             title: c.title,
             genre: c.genre,
           })

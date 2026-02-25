@@ -63,6 +63,7 @@ interface PromptContext {
   maxDays: number
   maxActionPoints: number
   narrativeStyle: string
+  scriptContent?: string
   title: string
   genre: string
 }
@@ -99,7 +100,20 @@ export function buildSystemPrompt(ctx: PromptContext): string {
 
 ## 叙事风格
 ${ctx.narrativeStyle}
+`
 
+  if (ctx.scriptContent) {
+    prompt += `
+## 游戏剧本
+${ctx.scriptContent}
+
+## 写作铁律
+- 感官先行：每个场景至少三种感官（视/听/嗅/触/味），禁止"你来到了XX"式干瘪句
+- 情绪物化：不说"她很伤心"，写"指节攥白了衣角"。用身体反应代替情绪名词
+- 悬念埋线：每次回复至少一根暗线，前文伏笔要回收
+`
+  } else {
+    prompt += `
 ## 写作规则
 - 感官先行：每个场景至少三种感官（视/听/嗅/触/味），禁止"你来到了XX"式干瘪句
 - 角色有声：对话即人格，每人有独特语气和小动作，不看名字也能辨认
@@ -107,8 +121,10 @@ ${ctx.narrativeStyle}
 - 情绪物化：不说"她很伤心"，写"指节攥白了衣角"。用身体反应代替情绪名词
 - 冲突暗涌：每场景至少一层张力——价值碰撞、信任试探、知与不知的不对称
 - 悬念埋线：每次回复至少一根暗线，前文伏笔要回收
+`
+  }
 
-## 结构化标记（用中文全角方括号【】嵌入正文）
+  prompt += `## 结构化标记（用中文全角方括号【】嵌入正文）
 1. 属性变化：【属性名 +/-N】或【属性名 +/-N，属性名 +/-N】
 2. 目标更新：【目标更新：标题 +N%】
 3. 关键事件（每2-3回合）：【关键事件：标题】描述

@@ -323,6 +323,9 @@ function normalize(config: WorldConfig): WorldConfig {
   /* 确保 items 是数组 */
   if (!config.items) config.items = []
 
+  /* 确保 scriptContent 有默认值 */
+  if (!config.scriptContent) config.scriptContent = ''
+
   /* 确保 periods 有 index */
   config.periods = config.periods.map((p, i) => ({
     ...p,
@@ -370,7 +373,12 @@ export async function generateWorld(userPrompt: string): Promise<WorldConfig> {
         throw new GenerationError(`配置不完整: ${errors.join(', ')}`)
       }
 
-      return normalize(config)
+      const result = normalize(config)
+
+      /* 直通管道：长输入直接作为 scriptContent，零损耗注入 system prompt */
+      if (userPrompt.length >= 200) result.scriptContent = userPrompt
+
+      return result
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e))
       /* 第一次失败自动重试 */
