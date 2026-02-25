@@ -77,7 +77,7 @@ export default function CreationTerminal({ onGenerate }: { onGenerate: (prompt: 
                 }
               }}
               placeholder="例如：一个宁静的边境小镇被异界裂缝笼罩..."
-              maxLength={2000}
+              maxLength={30000}
               rows={4}
               style={{
                 width: '100%', padding: '16px 18px', paddingBottom: 40,
@@ -91,7 +91,7 @@ export default function CreationTerminal({ onGenerate }: { onGenerate: (prompt: 
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             }}>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {text.length}/2000
+                {text.length}/30000
               </span>
               <button
                 onClick={handleInspiration}
